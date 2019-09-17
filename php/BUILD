@@ -5,13 +5,27 @@ load("@rules_foreign_cc//tools/build_defs:cmake.bzl", "cmake_external")
 configure_make(
     name = "gnu_libiconv",
     lib_source = "@gnu_libiconv//:all",
+    configure_options = [
+        "--enable-static=yes"
+    ],
     static_libraries = [
         "libcharset.a",
+        "libiconv.a",
     ],
-    shared_libraries = [
-        "libcharset.dylib",
-        "libiconv.dylib"
-    ],
+    shared_libraries = select({
+        "@bazel_tools//src/conditions:windows": [
+            "libcharset.dll",
+            "libiconv.dll"
+        ],
+        "@bazel_tools//src/conditions:darwin": [
+            "libcharset.dylib",
+            "libiconv.dylib"
+        ],
+        "//conditions:default": [
+            "libcharset.so",
+            "libiconv.so"
+        ],
+    }),
     binaries = [
         "iconv"
     ]
@@ -25,10 +39,10 @@ configure_make(
         "libcrypto.a",
         "libssl.a",
     ],
-    shared_libraries = [
-        "libcrypto.dylib",
-        "libssl.dylib"
-    ],
+    # shared_libraries = [
+    #     "libcrypto.dylib",
+    #     "libssl.dylib"
+    # ],
     binaries = [
         "c_rehash",
         "openssl"
@@ -58,9 +72,9 @@ configure_make(
     static_libraries = [
         "libcurl.a"
     ],
-    shared_libraries = [
-        "libcurl.dylib"
-    ],
+    # shared_libraries = [
+    #     "libcurl.dylib"
+    # ],
     binaries = [
         "curl"
     ]
@@ -123,7 +137,8 @@ configure_make(
     name = "php",
     lib_source = "@php//:all",
     configure_options = [
-        "--with-iconv=\"$$EXT_BUILD_DEPS$$/gnu_libiconv\"",
+        "--with-iconv-dir=\"$$EXT_BUILD_DEPS$$/gnu_libiconv\"",
+        "--with-iconv=shared,\"$$EXT_BUILD_DEPS$$/gnu_libiconv\"",
         "--with-openssl=\"$$EXT_BUILD_DEPS$$/openssl\"",
         "--with-bz2=\"$$EXT_BUILD_DEPS$$/bzip2\"",
         "--with-curl=\"$$EXT_BUILD_DEPS$$/curl\"",
@@ -150,7 +165,8 @@ configure_make(
         "--enable-soap",
         "--enable-xml",
         "--enable-zip",
-        "--enable-mbstring"
+        "--enable-mbstring",
+        "CFLAGS='-Dredacted=\"redacted\"'"
     ],
     deps = [
         ":gnu_libiconv",
@@ -160,5 +176,26 @@ configure_make(
         ":zlib",
         ":gettext",
         ":libzip"
+    ],
+    # make_commands = [
+    #     "ORIG_EXTRA_CFLAGS=$EXTRA_CFLAGS",
+    #     "export EXTRA_CFLAGS=$EXTRA_CFLAGS\ $$EXT_BUILD_DEPS$$/gnu_libiconv/lib/libiconv.a",
+    #     "make",
+    #     "make install",
+    #     "EXTRA_CFLAGS=$ORIG_EXTRA_CFLAGS",
+    #     "unset ORIG_EXTRA_CFLAGS"
+    # ],
+    binaries = [
+        "pear",
+        "peardev",
+        "pecl",
+        "phar",
+        "phar.phar",
+        "php",
+        "php-cgi",
+        "php-config",
+        "php-config-e",
+        "phpdbg",
+        "phpize"
     ]
 )
